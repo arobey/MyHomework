@@ -1,0 +1,99 @@
+---
+title: "Day 3 Homework"
+output: html_document
+---
+```{r}
+library(reshape2)
+CUdata <- read.csv("C:/Users/arobey/Dropbox/Jan R Course/CUdata.csv")
+```
+
+The goal of this homework is to get practice with manipulating data.
+
+1. Make both a "wide" and a "long" version of your data
+
+Long Version
+```{r}
+CUdata.melt1 <- melt(CUdata, measure.vars = c("TrainingTime", "EncodingTime", "BreakTime", "RetrievalTime", "TotalTime"), variable.name = "StudySection", value.name = "minutes")
+
+CUdata.melt2 <- melt(CUdata.melt1, measure.vars = c("N.6", "N.5", "N.4", "N.3", "N.2", "N.1", "Y.6", "Y.5", "Y.4", "Y.3", "Y.2", "Y.1", "R.6", "R.5", "R.4", "R.3", "R.2", "R.1"), variable.name = "ConfidenceRating", value.name = "NConfidenceRating")
+
+#Can the above all be done in 1 step?
+```
+
+My original data is in Wide version, but can also use dcast to get it back
+```{r}
+
+
+CUdata.cast1 <- dcast(CUdata.melt2, ID+Initials+Condition+SessionDate+Time+Tester+Set+FullTerm+Birthday+Age+ExactAge+Ethnicity+Race+CorrectTraining+Notes+Hits+Misses+Accuracy+Recollection+Familiarity+SSE+Convergence+LinearFiT+PolyFit+X2term +ConfidenceRating+NConfidenceRating ~ StudySection, value.var = "minutes" )
+
+#Is there a way to not have to write out every Colname on the left side of the formula? I tried several version of this:
+#DoCast<-colnames(CUdata.melt2)
+#DontCast <- c("StudySection", "minutes")
+
+#DoCast2<-DoCast[!DoCast %in% DontCast]
+#but couldn't get it to work
+
+CUdata.cast2 <- dcast(CUdata.cast1, ID+Initials+Condition+SessionDate+Time+Tester+Set+FullTerm+Birthday+Age+ExactAge+Ethnicity+Race+CorrectTraining+Notes+Hits+Misses+Accuracy+Recollection+Familiarity+SSE+Convergence+LinearFiT+PolyFit+X2term + TrainingTime + EncodingTime + BreakTime + RetrievalTime + TotalTime ~ ConfidenceRating, value.var = "NConfidenceRating" )
+
+```
+
+
+2. Transform a variable
+```{r}
+CUdata$HitProportion <- CUdata$Hit/120
+```
+
+3. Recode a factor
+```{r}
+CUdata$Age<- as.factor(CUdata$Age)
+summary(CUdata$Age)
+levels(CUdata$Age)
+levels(CUdata$Age) <- c("6yo", "8yo")
+
+#Trying to avoid usings numbers as labels for my factor so changed to 6yo and 8yo
+```
+
+4. Add a new factor, where the levels are conditional on the values of some other variable. E.g., a factor of "high", "medium", and "low" based on thresholds for another variable.
+
+```{r}
+CUdata$EncodingTime <- as.numeric(CUdata$EncodingTime)
+summary(CUdata$EncodingTime)
+CUdata$speed<- "medium"
+CUdata$speed[CUdata$EncodingTime < 14.75]<- "fast"
+CUdata$speed[CUdata$EncodingTime > 42] <- "slow"
+CUdata$speed<- as.factor(CUdata$speed)
+summary(CUdata$speed)
+```
+
+5. Reorder the levels of this new factor
+```{r}
+levels(CUdata$speed)
+CUdata$speed <- factor(CUdata$speed, levels = c("slow", "medium", "fast"))
+levels(CUdata$speed)
+```
+
+6. Choose a factor that could be re-coded as multiple dimensions (recall the sepal/petal vs. length/width breakdown). If you don't have one, try to create one.  Now create two (or more) new factors that represent these dimensions.
+
+#for CUdata.melt2 I will separate the confidence Ratings between color and number
+```{r}
+CUdata.melt3 <- cbind(CUdata.melt2, 
+                      colsplit(CUdata.melt2$ConfidenceRating, pattern = "\\.", 
+                               names = c("color", "ConfidenceLevel")))
+
+```
+
+7. Using `dcast`, aggregate some variable into "cell means" of some kind.
+
+```{r}
+
+CUdata.cast4 <- dcast(CUdata.melt3, ID+Initials+Condition+SessionDate+Time+Tester+Set+FullTerm+Birthday+Age+Ethnicity+CorrectTraining+Notes+Hits+Misses+Accuracy+Recollection+Familiarity+SSE+Convergence+LinearFiT+PolyFit+X2term + StudySection+minutes +ConfidenceRating +ConfidenceLevel + NConfidenceRating +color ~ Race, value.var = "ExactAge", fun.aggregate = mean )
+
+#not very practical, but I could get it to run (the Race varialbe is a mess and not something I actually plan on using). I tried doing below but kept getting errors 
+
+CUdata.cast4 <- dcast(CUdata.melt3, ID+Initials+Condition+SessionDate+Time+Tester+Set+FullTerm+Birthday+Age+ExactAge+Ethnicity+Race+CorrectTraining+Notes+Hits+Misses+Accuracy+Recollection+Familiarity+SSE+Convergence+LinearFiT+PolyFit+X2term + StudySection+minutes +ConfidenceRating +ConfidenceLevel  ~ color, value.var = "NConfidenceRating", fun.aggregate = mean, na.rm=TRUE )
+
+#I thought for each subject this would take the average NConfidenceRating across the 6 levels for each color (N, Y, R) so for N it would average N1,N2,N3,N4, N5 & N6...suggestions?
+
+```
+
+8.  Save all of the above in a well-documented R Markdown document.  Email me the .Rmd file (and if you use different or updated data from Day 2 Homework, send that to me, too).

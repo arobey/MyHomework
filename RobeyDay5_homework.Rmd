@@ -1,0 +1,170 @@
+---
+title: "Day 5 Homework"
+output: html_document
+---
+```{r}
+CUdata <- read.csv("C:/Users/arobey/Dropbox/Jan R Course/CUdata.csv")
+library(reshape2)
+library(ggplot2)
+library(plyr)
+```
+
+0. Start out by getting your data into "long" format.  This will help with some of the following.
+
+```{r}
+CUdata.melt1 <- melt(CUdata, measure.vars = c("TrainingTime", "EncodingTime", "BreakTime", "RetrievalTime", "TotalTime"), variable.name = "StudySection", value.name = "minutes")
+
+CUdata.melt2 <- melt(CUdata.melt1, measure.vars = c("N.6", "N.5", "N.4", "N.3", "N.2", "N.1", "Y.6", "Y.5", "Y.4", "Y.3", "Y.2", "Y.1", "R.6", "R.5", "R.4", "R.3", "R.2", "R.1"), variable.name = "ConfidenceRating", value.name = "NConfidenceRating")
+
+CUdataClean <- CUdata.melt2[!is.na(CUdata$Hits), ]
+```
+1. Pick a single numerical variable from your data.  Use `ggplot` to plot a histogram and a density plot (separately).
+   - Try some different values for `binwidth` for the histogram.
+   - Try some different values for `adjust` for the density plot.
+```{r}
+cudata <- CUdataClean
+
+ggplot(cudata, aes(Accuracy)) +geom_histogram()
+ggplot(cudata, aes(Accuracy)) +geom_histogram(binwidth = .5)
+ggplot(cudata, aes(Accuracy)) +geom_histogram(binwidth = .25)
+
+ggplot(cudata, aes(Accuracy)) +geom_density()
+ggplot(cudata, aes(Accuracy)) +geom_density(adjust = .5)
+ggplot(cudata, aes(Accuracy)) +geom_density(adjust = 1.5)
+```
+
+
+2. How does the distribution look?  Try transforming the variable and try to get it to look more normal (i.e., more Gaussian).  If it already looks normal, do something to it to make it look non-normal.
+
+#It actually looks pretty normal :)
+```{r}
+cudata$Accuracy2 <- log(cudata$Accuracy * cudata$Accuracy)
+
+ggplot(cudata, aes(Accuracy2)) +geom_histogram()
+
+
+###BONUS
+minpair <- CognitionPaperFinalData <- read.csv("C:/Users/Alison/Dropbox/Jan R Course/r_programming_bsos/scottdata/CognitionPaperFinalData.csv")
+library(ggplot2)
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram() 
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram() +geom_vline(xintercept = 1, color = "red")
+```
+
+3. Is there a factor that you can use to break up this variable into groups of observations?  If not, reshape your data so that there is, or create a factor if necessary.  Then, do the following:
+   - Plot it as a density plot, mapping `color` to the factor
+   - Same, but try using `fill` instead of `color`
+   - Same, using `linetype` instead of `color`
+   - Plot the data as a boxplot, with the factor as `x` and the numerical variable as `y`
+   
+```{r}
+cudata$Age <- as.factor(cudata$Age)
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(color = Age))
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(fill = Age))
+
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(fill = Age), alpha = .3) #makes more transparent 
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(linetype = Age))
+ggplot(cudata, aes(Age,Accuracy)) + geom_boxplot()
+
+
+###BONUS how to adjust colors
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Corpus))
+
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Corpus)) + scale_fill_brewer(palette = "Set3")
+
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Merged)) + scale_fill_brewer(palette = "Set3")
+
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Merged)) + scale_fill_manual(values = c("thistle", "violetred1"))
+
+colors()
+```
+
+4. Now let's look at breaking up a histogram across a factor.  With the same variables you used in #3:
+   - Plot a histogram, but use faceting to display them, one above the other.
+   - Try mapping the factor to `color` or `fill`, to see what that looks like.
+   - Which one seems most useful or informative for your data, and why?
+   
+```{r}
+ggplot(cudata, aes(Accuracy)) + geom_histogram() +facet_grid(Age~.)
+ggplot(cudata, aes(Accuracy)) + geom_histogram(aes(color = Age)) 
+ggplot(cudata, aes(Accuracy)) + geom_histogram(aes(fill = Age)) 
+
+
+
+```
+# I think facet wrapping seems more useful. Color is a bit hard to see, and fill is strange that is stacks one on top of the other, makes it hard to visualize the 2 groups. 
+5. Now find two numerical variables.  You may need to reshape your data.  For example, if you have one numerical variable and a "condition" factor, you could use `dcast` to spread that variable across multiple columns (one per level of the factor).  Once you have two numerical variables:
+   - Create a scatterplot, with one variable mapped to `x` and the other to `y`.
+   - Plot a "loess" smoother on top of the scatterplot
+   - Plot a regression line on top of the scatterplot (instead of the loess)
+```{r}
+cudata$LinearFiT <-as.numeric(cudata$LinearFiT)
+ggplot(cudata, aes(LinearFiT, Accuracy)) + geom_point()
+ggplot(cudata, aes(LinearFiT, Accuracy)) + geom_point() + geom_smooth(method = "loess")
+ggplot(cudata, aes(LinearFiT, Accuracy)) + geom_point() + geom_smooth(method = "lm")
+
+```
+
+
+6. Are there any other factors that split up the variable plotted in #5?  If so try the following:
+   - Map the factor to `color`
+   - Facet by the factor
+```{r}
+ggplot(cudata, aes(LinearFiT, Accuracy, color = Age)) + geom_point() + geom_smooth(method = "lm")
+ggplot(cudata, aes(LinearFiT, Accuracy, color = Age)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(~Age) 
+
+theme_minimal()
+theme_classic
+
+```   
+
+7. Output all of the plots above as a single PDF.
+
+```{r}
+pdf("Homework5.pdf")
+ggplot(cudata, aes(Accuracy)) +geom_histogram()
+ggplot(cudata, aes(Accuracy)) +geom_histogram(binwidth = .5)
+ggplot(cudata, aes(Accuracy)) +geom_histogram(binwidth = .25)
+
+ggplot(cudata, aes(Accuracy)) +geom_density()
+ggplot(cudata, aes(Accuracy)) +geom_density(adjust = .5)
+ggplot(cudata, aes(Accuracy)) +geom_density(adjust = 1.5)
+ggplot(cudata, aes(Accuracy2)) +geom_histogram()
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(color = Age))
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(fill = Age))
+ggplot(cudata, aes(Accuracy)) + geom_density(aes(linetype = Age))
+ggplot(cudata, aes(Age,Accuracy)) + geom_boxplot()
+ggplot(cudata, aes(Accuracy)) + geom_histogram() +facet_grid(Age~.)
+ggplot(cudata, aes(Accuracy)) + geom_histogram(aes(color = Age)) 
+ggplot(cudata, aes(Accuracy)) + geom_histogram(aes(fill = Age)) 
+ggplot(cudata, aes(LinearFiT, Accuracy)) + geom_point()
+ggplot(cudata, aes(LinearFiT, Accuracy)) + geom_point() + geom_smooth(method = "loess")
+ggplot(cudata, aes(LinearFiT, Accuracy)) + geom_point() + geom_smooth(method = "lm")
+ggplot(cudata, aes(LinearFiT, Accuracy, color = Age)) + geom_point() + geom_smooth(method = "lm")
+ggplot(cudata, aes(LinearFiT, Accuracy, color = Age)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(~Age)
+dev.off()
+
+
+```
+
+
+8. Is there a better type of visualization for your data?  What numbers would you like to be able to visualize better?  Be as explicit as possible, and write some "pseudo-code" to ilustrate what you think you would like.
+
+#I would like to be able to look at my data in bar graphs with st.error bars...althouhg I could probably work with box plots. Would like to see Accuracy with aes specifying both Age and Condition 
+```{r}
+cudata$Condition <- as.factor(cudata$Condition)
+cu <- ddply(cudata, "Age", summarise, dprime = mean(Accuracy))
+ggplot(cu, aes(x = Age, y = dprime)) + geom_bar(stat = "identity")
+#cant figure out how to get condition in this too, because it is not part of "cu"
+
+###really not visualizing data, are visualizing a summary of the data (means)
+
+ggplot(cudata, aes(Age)) + geom_bar()
+ggplot(cudata, aes(Age, Accuracy)) + geom_boxplot()
+ggplot(cudata, aes(Age, Accuracy)) + geom_boxplot(aes(fill = Condition))
+
+```
+
+
+9. Save your Markdown document that answers all of these questions (with code) as well as your PDF, and commit them as changes to your git homework repository.  Push those changes to GitHub by Monday morning at 9am.
+
+
