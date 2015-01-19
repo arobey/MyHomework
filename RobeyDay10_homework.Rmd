@@ -1,0 +1,61 @@
+---
+title: "Day 10 Homework"
+output: html_document
+---
+library(MASS)
+library(ggplot2)
+
+
+1. Find some relationship in your data (e.g., correlation, comparison of means, etc.) that is "significant" (don't worry too much about what that might mean).
+
+```{r}
+CUdata$EncodingTime <- as.numeric(CUdata$EncodingTime)
+CUdata$Total.Time <- as.numeric(CUdata$Total.Time)
+
+cor.test(CUdata$EncodingTime, CUdata$Total.Time)
+```
+
+
+2. Get an estimate of the effect size (e.g., the difference between means, or the correlation).
+r = .68
+
+3. Simulate data with this effect size (either using mvrnorm or adding a simulated effect), but with a much smaller data sample.  In other words, simulate an underpowered study.
+
+```{r}
+mydata <-(mvrnorm(n = 7, mu = c(0, 0), Sigma = matrix(c(1, .68, .68, 1), nrow = 2), empirical = TRUE))
+
+cor.test(mydata[, 1], mydata[, 2])
+
+mycor <- cor.test(mydata[, 1], mydata[, 2])
+pval <- mycor$p.value
+
+```
+
+4. Examine the amount of effect-size inflation via the "significance filter" by looking at the effect sizes from the simulations, for just the sims where the effect turned out significant.
+
+```{r}
+nsim <- 100
+
+results.table <- data.frame(cor = rep(NA, nsim), pval = NA)
+
+for(i in 1:nsim) {
+  simdata <- mvrnorm(n = 7, mu = c(0, 0), Sigma = matrix(c(1, .68, .68, 1), nrow = 2), empirical = FALSE)
+  simcor.test <- cor.test(simdata[, 1], simdata[, 2])
+  simcor <- simcor.test$estimate
+  pval <- simcor.test$p.value
+  results.table[i, ] <- c(simcor, pval)
+}
+
+
+alpha <- .05
+results.sig <- filter(results.table, pval < alpha)
+ggplot(results.sig, aes(cor)) + geom_histogram()
+
+results.sig<- as.number(results.sig)
+#cannot get above to work, can't find any class to set results.sig to that will allow ggplot to plot. 
+
+ggplot(results.sig, aes(cor) + geom_histogram()
+
+results.table$significant <- results.table$pval < alpha
+ggplot(results.table, aes(cor)) + geom_histogram(aes(fill = significant), binwidth = .1) + scale_fill_brewer(palette = "Set1") + geom_vline(xintercept = .3, linetype = 2)
+```
