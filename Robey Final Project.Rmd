@@ -1,0 +1,86 @@
+---
+title: "Jan R Course Final Project"
+output: html_document
+---
+```{r}
+library(ggplot2)
+library(reshape2)
+```
+Getting the Data Prepared 
+```{r}
+CUdata <- read.csv("C:/Users/Alison/Dropbox/Jan R Course/CUdata.csv")
+oldcolnames <- colnames(CUdata)
+newcolnames <- c("Age", "ID", "Initial","Condition", "First.Name", "Last.Name", "Ling", "Date","Time","Tester","Set","Full.Term","Birthdate","Exact.Age","Gender", "Ethnicity","Race", "Training.Time", "Encoding.Time", "Break.Time", "Retrieval.Time", "Total.Time", "Training.Correct", "Notes", "Source.Correct", "Source.Incorrect", "Accuracy", "N6" , "N5", "N4", "N3", "N2", "N1", "Y6", "Y5", "Y4", "Y3","Y2", "Y1", "R6", "R5", "R4", "R3", "R2", "R1", "RecT", "RecL", "Dprime", "SSE", "Convergence", "Linear.Fit", "Poly.Fit", "poly2term")
+colnames(CUdata) <- newcolnames
+names.table <- cbind(oldcolnames, newcolnames)
+
+CUdata$Age <- as.factor(CUdata$Age)
+CUdata$Condition <- as.factor(CUdata$Condition)
+CUdata$Set <- as.factor(CUdata$Set)
+CUdata$Gender <- as.factor(CUdata$Gender)
+CUdata$Accuracy <- as.numeric(CUdata$Accuracy) #normally distributed
+CUdata$RecT <- as.numeric(CUdata$RecT) #Positively skewed
+CUdata$RecL <- as.numeric(CUdata$RecL) #Positively skewed
+CUdata$Dprime <- as.numeric(CUdata$Dprime) #normal
+CUdata$poly2term <- as.numeric(CUdata$poly2term) #close to normal
+```
+
+Hypothesis 1: Main effect of Age
+
+Hypothesis 2: Main effect of Condition
+
+Hypothesis 3: Interaction between Age and Condition
+
+            To determine if there were main effects of age and condition and an interaction between age and condition, a two-way ANOVA will be run. Correct color responses, regardless of confidence rating, will serve as the dependent variable. It is expected that 8-year olds will outperform 6-year olds, that participants in the unitized condition will perform better than those in the non-unitized condition, and that the difference between conditions will be greater for the 6-year olds than the 8-year olds.
+            
+The above will be done for 3 DVs of interest: Accuracy, Familiarity, & Recollection            
+            
+Accuracy (between subjects)            
+```{r}
+#what was originally proposed
+results.Accuracy <- aov(Accuracy ~ Age*Condition, data=CUdata)
+summary(results.Accuracy)
+
+#after testing think there may be differneces between the sets and some prior research suggests there may be gender differences 
+results.Accuracy2 <- aov(Accuracy ~ Age*Condition + Set + Gender, data=CUdata)
+summary(results.Accuracy2)
+```
+
+Familiarity (Between Subjects)          
+```{r}
+#what was originally proposed
+results.Dprime <- aov(Dprime ~ Age*Condition, data=CUdata)
+summary(results.Dprime)
+ 
+#after testing think there may be differneces between the sets and some prior research suggests there may be gender differences 
+results.Dprime2 <- aov(Dprime ~ Age*Condition + Set + Gender, data=CUdata)
+summary(results.Dprime2)
+```
+
+Recollection (Recollection has 2 measures Target and Lure within subjects, do not expect any difference)         
+```{r}
+CUdatamelt <- melt(CUdata, measure.vars= c("RecT", "RecL"), variable.name = "Stimulus", value.name = "Recollection" )
+#what was originally proposed
+results.Rec <- aov(Recollection ~ Age*Condition*Stimulus + Error(ID/Stimulus), data=CUdatamelt)
+summary(results.Rec)
+ 
+#after testing think there may be differneces between the sets and some prior research suggests there may be gender differences 
+results.Rec2 <- aov(Recollection ~ Age*Condition*Stimulus + Set + Gender + Error(ID/Stimulus), data=CUdatamelt)
+summary(results.Rec2)
+```
+
+Plot the above data (I had originally said I was going to do a bar graph with error bars, but a box plot is much more informative)
+```{r}
+
+boxplot(Accuracy~Condition*Age, data=CUdata, notch=FALSE,
+  col=(c("red","blue4")), main="Source Memory Accuracy", xlab="Age & Condition") 
+
+
+boxplot(Dprime~Condition*Age, data=CUdata, notch=FALSE,
+  col=(c("red","blue4")), main="Familiarity", xlab="Age & Condition") 
+
+#since recollection for targets and lures was not significatly different can view combined
+boxplot(Recollection~Condition*Age, data=CUdatamelt, notch=FALSE,
+  col=(c("red","blue4")), main="Recollection", xlab="Age & Condition") 
+
+```
